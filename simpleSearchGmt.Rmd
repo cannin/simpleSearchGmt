@@ -1,0 +1,66 @@
+---
+title: "Simple Search of a .gmt File"
+output:
+  html_notebook:
+    toc: yes
+  md_document:
+    variant: markdown_github
+---
+  
+# Purpose
+
+Search a .gmt file (from Pathway Commons) with basic pre-processing for a list of query genes to identify pathways of interest
+
+# Setup
+
+```{r}
+source("calcJaccard.R")
+source("readGmt.R")
+source("searchListOfVectors.R")
+
+lowerBound <- 3
+upperBound <- 100
+```
+
+# Load Data and Filter Out Very Large (Ambiguous) Pathways
+
+```{r}
+lovGmt <- readGmt("Human_GOBP_AllPathways_no_GO_iea_February_01_2017_symbol.gmt")
+xCnts <- unlist(lapply(lovGmt, length))
+idx <- which(xCnts > lowerBound & xCnts < upperBound)
+
+pcGmt <- lovGmt[idx]
+```
+
+# Example Query
+
+```{r}
+queryGenes <- c("MDM2", "MDM4", "TP53")
+
+individualSearchResults <- searchListOfVectors(queryGenes, pcGmt)
+intersectedSearchResults <- Reduce(intersect, individualSearchResults)
+
+pathways <- names(pcGmt)[intersectedSearchResults]
+```
+
+# Calculate Jaccard to Find the Most Similar
+
+```{r}
+tmp <- pcGmt[intersectedSearchResults]
+
+jaccardResults <- NULL 
+
+for(i in 1:length(tmp)) {
+  jaccardResults[i] <- calcJaccard(queryGenes, tmp[[i]])
+}
+
+jaccardResults
+```
+
+# Show Most Similar Pathway 
+
+```{r}
+idx <- which.max(jaccardResults)
+tmp[idx]
+```
+
